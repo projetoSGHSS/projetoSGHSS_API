@@ -4,17 +4,19 @@ from flask import Flask, jsonify
 
 app = Flask(__name__)
 
+##############################################
 #ROTAS PARA A TABELA CADASTRO USUÁRIO
+
 ##ROTA GET
 ##############################################
-@app.route("/CadastroUsuario", methods=["GET"])
+@app.route("/tabelaCadastroUsuario", methods=["GET"])
 def listar_Cadastros():
     conn = conectar()
     #conn.execute("PRAGMA foreign_keys = ON") #ativa as chaves estrangeiras das tabelas (pois, não é ativado por padrão)
     cursor = conn.cursor()
-    cursor.execute("SELECT IDCadastroUsuario, NomeUsuario, SenhaUsuario, SetorUsuario FROM CadastroUsuario")
+    cursor.execute("SELECT idUsuario, NomeUsuario, tipoProfissional, matriculaProfissional, SenhaUsuario FROM tabelaCadastroUsuario")
     dados = [
-        {"id": row[0], "NomeUsuario": row[1], "SenhaUsuario": row[2], "SetorUsuario": row[3]}
+        {"idUsuario": row[0], "NomeUsuario": row[1], "tipoProfissional": row[2], "matriculaProfissional": row[3], "SenhaUsuario": row[4] }
         for row in cursor.fetchall()
     ]
     conn.close()
@@ -24,13 +26,13 @@ def listar_Cadastros():
 #############################################
 from flask import jsonify, abort
 
-@app.route("/CadastroUsuario/<int:id_usuario>", methods=["DELETE"])
+@app.route("/tabelaCadastroUsuario/<int:id_usuario>", methods=["DELETE"])
 def deletar_usuario(id_usuario):
     conn = conectar()
     cursor = conn.cursor()
 
     # tenta apagar o registro informado
-    cursor.execute("DELETE FROM CadastroUsuario WHERE IDCadastroUsuario = ?", (id_usuario,))
+    cursor.execute("DELETE FROM CadastroUsuario WHERE idUsuario = ?", (id_usuario,))
     conn.commit()
 
     # cursor.rowcount informa quantas linhas foram afetadas
@@ -48,23 +50,23 @@ def deletar_usuario(id_usuario):
 #############################################
 
 from flask import request, jsonify, abort
-@app.route("/CadastroUsuario", methods=["POST"])
+@app.route("/tabelaCadastroUsuario", methods=["POST"])
 def criar_usuario():
     dados = request.get_json(silent=True)
     if not dados:
         abort(400, description="JSON inválido ou ausente")
 
     # Validação de campos obrigatórios
-    campos_obrigatorios = {"NomeUsuario", "SenhaUsuario", "SetorUsuario"}
+    campos_obrigatorios = {"NomeUsuario", "tipoProfissional", "matriculaProfissional", "SenhaUsuario"}
     if not campos_obrigatorios.issubset(dados.keys()):
         abort(400, description=f"Campos obrigatórios: {', '.join(campos_obrigatorios)}")
 
     conn = conectar()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO CadastroUsuario (NomeUsuario, SenhaUsuario, SetorUsuario) "
+        "INSERT INTO tabelaCadastroUsuario (NomeUsuario, tipoProfissional, matriculaProfissional, SenhaUsuario) "
         "VALUES (?, ?, ?)",
-        (dados["NomeUsuario"], dados["SenhaUsuario"], dados["SetorUsuario"])
+        (dados["NomeUsuario"], dados["tipoProfissional"], dados["matriculaProfissional"], dados["SenhaUsuario"])
     )
     conn.commit()
     novo_id = cursor.lastrowid
@@ -73,12 +75,12 @@ def criar_usuario():
     # 201 Created + Location do recurso recém‑criado
     resposta = jsonify({"id": novo_id, **dados})
     resposta.status_code = 201
-    resposta.headers["Location"] = f"/CadastroUsuario/{novo_id}"
+    resposta.headers["Location"] = f"/tabelaCadastroUsuario/{novo_id}"
     return resposta
 
 ##ROTA UPDATE
 #############################################
-@app.route("/CadastroUsuario/<int:id_usuario>", methods=["PUT", "PATCH"])
+@app.route("/tabelaCadastroUsuario/<int:id_usuario>", methods=["PUT", "PATCH"])
 def atualizar_usuario(id_usuario):
     dados = request.get_json(silent=True)
     if not dados:
@@ -86,12 +88,12 @@ def atualizar_usuario(id_usuario):
 
     # Para PUT, garanta que todos os campos estejam presentes
     if request.method == "PUT":
-        campos_esperados = {"NomeUsuario", "SenhaUsuario", "SetorUsuario"}
+        campos_esperados = {"NomeUsuario", "tipoProfissional", "matriculaProfissional", "SenhaUsuario"}
         if not campos_esperados.issubset(dados.keys()):
             abort(400, description=f"PUT requer todos os campos: {', '.join(campos_esperados)}")
 
     # Monta dinamicamente o SQL somente com os campos enviados
-    campos_validos = {"NomeUsuario", "SenhaUsuario", "SetorUsuario"}
+    campos_validos = {"NomeUsuario", "tipoProfissional", "matriculaProfissional", "SenhaUsuario"}
     set_clauses = []
     valores = []
     for campo in campos_validos & dados.keys():
@@ -106,7 +108,7 @@ def atualizar_usuario(id_usuario):
     conn = conectar()
     cursor = conn.cursor()
     cursor.execute(
-        f"UPDATE CadastroUsuario SET {', '.join(set_clauses)} WHERE IDCadastroUsuario = ?",
+        f"UPDATE tabelaCadastroUsuario SET {', '.join(set_clauses)} WHERE idUsuario = ?",
         tuple(valores)
     )
     conn.commit()

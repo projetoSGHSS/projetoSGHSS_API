@@ -1,4 +1,4 @@
 import sqlite3
 
 def conectar():
-    return sqlite3.connect("appComercio.db")  # banco no mesmo diretório
+    return sqlite3.connect("projetoSGHSS.db")  # banco no mesmo diretório
